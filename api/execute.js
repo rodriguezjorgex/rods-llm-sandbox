@@ -10,8 +10,7 @@ export default async function handler(request, response) {
   const secretToken = process.env.MY_SECRET_SANDBOX_KEY;
 
   if (!incomingToken || incomingToken !== secretToken) {
-    // Instantly reject the attacker with a 401 Unauthorized error
-    return response.status(401).json({ error: 'Unauthorized. Keep out.' });
+    return response.status(401).json({ error: 'Unauthorized.' });
   }
 
   try {
@@ -24,10 +23,16 @@ export default async function handler(request, response) {
     const customConsole = {
       log: (...args) => {
         logs.push(args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' '));
+      },
+      error: (...args) => {
+        logs.push("[ERROR] " + args.map(arg => typeof arg === 'object' ? JSON.stringify(arg) : String(arg)).join(' '));
       }
     };
 
-    const runner = new Function('console', `
+    // 1. Create an AsyncFunction constructor so the string can use top-level await syntax
+    const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+
+    const runner = new AsyncFunction('console', `
       try {
         ${code}
       } catch (err) {
@@ -35,7 +40,8 @@ export default async function handler(request, response) {
       }
     `);
 
-    const result = runner(customConsole);
+    # 2. Crucial Fix: We use 'await' here so the server waits for any network/fetch commands to complete!
+    const result = await runner(customConsole);
 
     return response.status(200).json({
       success: true,
@@ -49,4 +55,5 @@ export default async function handler(request, response) {
       error: error.message || 'An execution error occurred'
     });
   }
+}
 }
