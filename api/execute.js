@@ -40,7 +40,7 @@ export default async function handler(request, response) {
       }
     `);
 
-    # 2. Crucial Fix: We use 'await' here so the server waits for any network/fetch commands to complete!
+    // 2. Crucial Fix: Changed the comment marker from # to // so Node doesn't crash!
     const result = await runner(customConsole);
 
     return response.status(200).json({
